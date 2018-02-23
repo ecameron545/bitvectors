@@ -150,17 +150,15 @@ public class BArrayNSet implements NSet {
 	 */
 	public NSet union(NSet other) {
 		checkParameter(other);
-		int newSize = range() + other.range();
+		int newSize = range();
 		BArrayNSet unionSet = new BArrayNSet(newSize);
 
-		for (int i = 0; i < range() || i < other.range(); i++) {
+		for (int i = 0; i < newSize; i++) {
 			if (internal[i] || other.contains(i))
 				unionSet.internal[i] = true;
 			else
 				unionSet.internal[i] = false;
 		}
-		
-		
 
 		return unionSet;
 	}
@@ -175,10 +173,10 @@ public class BArrayNSet implements NSet {
 	 */
 	public NSet intersection(NSet other) {
 		checkParameter(other);
-		int newSize = range() + other.range();
+		int newSize = range();
 		BArrayNSet unionSet = new BArrayNSet(newSize);
 
-		for (int i = 0; i < range() || i < other.range(); i++) {
+		for (int i = 0; i < newSize; i++) {
 			if (internal[i] && other.contains(i))
 				unionSet.internal[i] = true;
 			else
@@ -198,14 +196,14 @@ public class BArrayNSet implements NSet {
 	 */
 	public NSet difference(NSet other) {
 		checkParameter(other);
-		int newSize = range() + other.range();
+		int newSize = range();
 		BArrayNSet unionSet = new BArrayNSet(newSize);
 
-
-		for (int i = 0; i < range() || i < other.range(); i++) {
-			if((internal[i] && !other.contains(i)) || !internal[i] && other.contains(i))
+		for (int i = 0; i < newSize; i++) {
+			if (internal[i] && !other.contains(i))
 				unionSet.internal[i] = true;
-			unionSet.internal[i] = false;
+			else
+				unionSet.internal[i] = false;
 		}
 
 		return unionSet;
@@ -224,7 +222,28 @@ public class BArrayNSet implements NSet {
 		while (j < internal.length && !internal[j])
 			j++;
 		final int finalJ = j;
-		throw new UnsupportedOperationException();
-	}
 
+		return new Iterator<Integer>() {
+
+			int i = finalJ;
+
+			public boolean hasNext() {
+				return i < internal.length;
+			}
+
+			public Integer next() {
+				if (!hasNext())
+					return null;
+
+				int oldI = i;
+
+				while (++i < internal.length)
+					if (internal[i])
+						break;
+
+				return oldI;
+			}
+
+		};
+	}
 }
