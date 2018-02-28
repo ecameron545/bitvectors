@@ -1,6 +1,7 @@
 package impl;
 
 import java.nio.charset.UnsupportedCharsetException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -84,10 +85,6 @@ public class BitVecNSet implements NSet {
 	public boolean contains(Integer item) {
 		checkIndex(item);
 		
-		System.out.println(internal[0]);
-		System.out.println(internal[1]);
-		System.out.println(internal[2]);
-
 		int index = item / 8; // index in the byte array (which is internal[])
 
 		// to get the mask shift 1 to the left by item % 8.
@@ -176,13 +173,25 @@ public class BitVecNSet implements NSet {
 	 *         other set.
 	 */
 	public NSet union(NSet other) {
-
+		checkParameter(other);
+		
+		// Create the new set called toReturn
 		BitVecNSet toReturn = new BitVecNSet(range);
 
+		// First for-loop runs through the bytes in the byte array (internal)
 		for (int i = 0; i < internal.length; i++) {
+			
+			// Second for-loop runs through the bits in each byte of the byte array (internal)
 			for (int j = 0; j < 8; j++) {
-				int mask = 1 << j;
-				if ((internal[i] & mask) == 1 && other.contains(j + (8 * i))) {
+				int mask = 1 << j; // Create a mask to check each bit of the current byte internal[i]
+
+				// Test case if the number equivalent of the bit is over the range.
+				if((j + (8 * i)) >= range())
+					break;
+				
+				// If the bit in the first set (internal) is 1, or the other set contains
+				// the number equivalent of the bit, add the number to the new set (toReturn)
+				if ((internal[i] & mask) != 0 || other.contains(j + (8 * i))) {
 					toReturn.add(j + (8 * i));
 				}
 			}
@@ -200,12 +209,24 @@ public class BitVecNSet implements NSet {
 	 */
 	public NSet intersection(NSet other) {
 		checkParameter(other);
+		
+		// Create the new set called toReturn
 		BitVecNSet toReturn = new BitVecNSet(range);
 
+		// First for-loop runs through the bytes in the byte array (internal)
 		for (int i = 0; i < internal.length; i++) {
+			
+			// Second for-loop runs through the bits in each byte of the byte array (internal)
 			for (int j = 0; j < 8; j++) {
-				int mask = 1 << j;
-				if ((internal[i] & mask) == 1 || other.contains(j + (8 * i))) {
+				int mask = 1 << j; // Create a mask to check each bit of the current byte internal[i]
+				
+				// Test case if the number equivalent of the bit is over the range.
+				if((j + (8 * i)) >= range())
+					break;
+
+				// If the bit in the first set (internal) is 1, and the other set contains
+				// the number equivalent of the bit, add the number to the new set (toReturn)
+				if ((internal[i] & mask) != 0 && other.contains(j + (8 * i))) {
 					toReturn.add(j + (8 * i));
 				}
 			}
@@ -223,12 +244,24 @@ public class BitVecNSet implements NSet {
 	 */
 	public NSet difference(NSet other) {
 		checkParameter(other);
+		
+		// Create the new set called toReturn
 		BitVecNSet toReturn = new BitVecNSet(range);
 
+		// First for-loop runs through the bytes in the byte array (internal)
 		for (int i = 0; i < internal.length; i++) {
+			
+			// Second for-loop runs through the bits in each byte of the byte array (internal)
 			for (int j = 0; j < 8; j++) {
-				int mask = 1 << j;
-				if ((internal[i] & mask) == 1 && !other.contains(j + (8 * i))) {
+				int mask = 1 << j; // Create a mask to check each bit of the current byte internal[i]
+				
+				// Test case if the number equivalent of the bit is over the range.
+				if((j + (8 * i)) >= range())
+					break;
+
+				// If the bit in the first set (internal) is 1, and the other set doesn't contain
+				// the number equivalent of the bit, add the number to the new set (toReturn)
+				if ((internal[i] & mask) != 0 && !other.contains(j + (8 * i))) {
 					toReturn.add(j + (8 * i));
 				}
 			}
@@ -265,70 +298,75 @@ public class BitVecNSet implements NSet {
 	 * Iterate through this set.
 	 */
 	public Iterator<Integer> iterator() {
-
-		// calculate the index of the first true position, // if any; that is, the
-		// first value the iterator should return
+		
+		// If the set is empty, return an empty iterator.
+		if(isEmpty())
+			return Collections.emptyIterator();
+		
+		
+		
+		/* First we must calculate the position of the first set bit */ 
 		int j = 0;
+		
+		// Calculate the position of the first non zero byte in the byte array (internal)
 		while (j < internal.length && internal[j] == 0)
 			j++;
-		final int finalJ = j;
-		int startByte = internal[j];
-
 		
+		final int finalJ = j; // starting byte number
+		
+		// Calculate the position of the first set bit in the byte internal[j]
 		int i = 0; 
-		while (i < 8 && ((startByte & (1 << i)) == 0)) 
+		while (i < 8 && ((internal[j] & (1 << i)) == 0)) 
 			i++;
 		
-			
-		final int finalI = i;
-		final int startBit = startByte & (1 << i);
+		final int finalI = i; // starting bit number in the byte finalJ
+		
 
-		
-		
-		
-		
+		// Now that we know the index of the first bit, we can make the iterator.
 		return new Iterator<Integer>() {
 			
+			int byt = finalJ; // current byte
+			int bit = finalI; // current bit
 			
-			
-			int by = finalJ; // current byte
-			int bi = startBit; // current bit
-			int fi = finalI + 1;
-			
-			
-			
-			
+			// To see if there is a next, just see if the current byte number is greater
+			// greater then the byte array.
 			public boolean hasNext() {
-				return by < internal.length;
+				return byt < internal.length;
 			}
 
-			
-			
 			
 			public Integer next() {
 			
-				int ret = bi; // save old 
-
+				// set the return value to the number value of the last known
+				// set bit in the bit vector.
+				int toReturn = bit + (8 * byt); 
+				
+				bit++; // increment the bit number so we can check if the next bit in line is set.
+				
+				/* make sure there is a next */
 				if (!hasNext())
 					return null;
 
-				while (by < internal.length) {
-					for (int i = fi; i < 8; i++) {
-						if ((internal[by] & (1 << i)) != 0) {
-							bi = internal[by] & (1 << i);
-							fi = i+1;
-							return ret;
+				// while the by (byte array index) is less then the length of the byte array(internal)
+				while (byt < internal.length) {
+					
+					// set i at the position of the next bit to check. These bits only range from
+					// 0-7 because at bit 8 we begin a new byte. 
+					for (int i = bit; i < 8; i++) {
+						
+						// if the next bit in the internal[by] byte is marked record the position
+						// of the bit relative to the byte it is in (variable name is bit).
+						// Then return the last known bit which is toReturn.
+						if ((internal[byt] & (1 << i)) != 0) {
+							bit = i;
+							return toReturn;
 						}
 					}
-					by++;
+					byt++; // increment the byte position. (internal[by])
+					bit = 0; // reset the bit position to 0 because we entered a new byte.
 				}
-				return ret;
+				return toReturn; // return our last known bit. 
 			}
-			
-			
-			
-			
-			
 		};
 	}
 
@@ -351,14 +389,4 @@ public class BitVecNSet implements NSet {
 		return toReturn;
 	}
 	
-	public static void main(String[] args) {
-		BitVecNSet bvs = new BitVecNSet(24);
-		bvs.add(0);
-		bvs.add(13);
-		bvs.add(22);
-		System.out.println(bvs.toString());
-		bvs.contains(3);
-		
-	}
-
 }
